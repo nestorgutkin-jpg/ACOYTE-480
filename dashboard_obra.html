@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="🏗️ Acoyte">
+<link rel="icon" type="image/png" href="icon-obra-dashboard.png">
+<link rel="apple-touch-icon" href="icon-obra-dashboard.png">
+<title>🏗️ Acoyte 480</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#fff;min-height:100vh;padding-bottom:2rem}
+.header{background:linear-gradient(135deg,#7C2D12,#C2410C);padding:48px 20px 20px;text-align:center}
+.header h1{font-size:20px;font-weight:600}
+.header .sub{font-size:12px;opacity:.7;margin-top:4px}
+.content{padding:16px}
+.section-title{font-size:11px;font-weight:600;color:#8e9ab0;text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.metric{background:#1a1d27;border-radius:14px;padding:14px}
+.metric .lbl{font-size:11px;color:#8e9ab0;margin-bottom:6px}
+.metric .val{font-size:20px;font-weight:300}
+.metric .val.green{color:#34d399}
+.metric .val.red{color:#f87171}
+.metric .val.blue{color:#60a5fa}
+.metric .val.orange{color:#fb923c}
+.metric .sub-val{font-size:11px;color:#8e9ab0;margin-top:3px}
+.pres-item{margin-bottom:12px}
+.pres-header{display:flex;justify-content:space-between;margin-bottom:5px}
+.pres-cat{font-size:13px;font-weight:500}
+.pres-nums{font-size:11px;color:#8e9ab0}
+.bar-bg{background:#1a1d27;border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:8px;border-radius:4px}
+.bar-ok{background:linear-gradient(90deg,#1D9E75,#34d399)}
+.bar-warn{background:linear-gradient(90deg,#BA7517,#fbbf24)}
+.bar-over{background:linear-gradient(90deg,#c0392b,#f87171)}
+.pres-pct{font-size:10px;color:#8e9ab0;margin-top:3px;text-align:right}
+.chart-wrap{background:#1a1d27;border-radius:14px;padding:16px;margin-bottom:4px}
+.loading{text-align:center;padding:40px;color:#8e9ab0;font-size:14px}
+.spinner{width:32px;height:32px;border:2px solid #ffffff20;border-top-color:#fb923c;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-btn{display:block;width:100%;padding:12px;background:#1a1d27;border:0.5px solid #ffffff20;border-radius:12px;color:#8e9ab0;font-size:13px;font-family:inherit;cursor:pointer;margin-top:16px;text-align:center}
+.error{background:#2d1515;border:0.5px solid #f87171;border-radius:12px;padding:14px;color:#f87171;font-size:13px;margin-top:16px}
+.prestamo-item{background:#1a1d27;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.prestamo-item .lbl{font-size:13px;color:#8e9ab0}
+.prestamo-item .val{font-size:16px;font-weight:500}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏗️ Acoyte 480</h1>
+  <p class="sub" id="headerSub">Cargando...</p>
+</div>
+<div class="content">
+  <div id="main-content">
+    <div class="loading"><div class="spinner"></div>Cargando datos...</div>
+  </div>
+</div>
+<script>
+const SHEET_ID = "1pabXS-DN3kpw7x4GaNlpWeMS7_ncHt6PtpwSUUU9nj8";
+
+function ars(n){
+  if(Math.abs(n)>=1000000) return '$'+(n/1000000).toFixed(1)+'M';
+  if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'K';
+  return '$'+Math.round(n).toLocaleString('es-AR');
+}
+function usd(n){
+  return 'U$D '+Number(n).toLocaleString('es-AR',{maximumFractionDigits:0});
+}
+
+async function fetchSheet(nombre){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nombre)}&headers=0`;
+  const r = await fetch(url);
+  const t = await r.text();
+  const j = JSON.parse(t.replace(/^[^{]*/, '').replace(/\);?\s*$/, ''));
+  return (j.table.rows||[]).map(row => (row.c||[]).map(c => c ? c.v : null));
+}
+
+async function cargarDatos(){
+  document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando datos...</div>';
+  try {
+    const [compraRows, gremiosRows, prestamoRows] = await Promise.all([
+      fetchSheet('Compra'),
+      fetchSheet('Gremios'),
+      fetchSheet('Prestamo')
+    ]);
+
+    // Compra: última fila es TOTAL
+    let costoCompra = 0;
+    for(const row of compraRows){
+      if(row[0] && String(row[0]).toUpperCase().includes('TOTAL')) costoCompra = parseFloat(row[1])||0;
+    }
+
+    // Gremios: filas de categoría + fila TOTAL
+    const gremios = [];
+    let presupuestoObra = 0, gastadoObra = 0;
+    for(const row of gremiosRows.slice(1)){ // saltar encabezado
+      if(!row[0]) continue;
+      const nombre = String(row[0]);
+      const presup = parseFloat(row[1])||0;
+      const gastado = parseFloat(row[2])||0;
+      if(nombre.toUpperCase().includes('TOTAL')){
+        presupuestoObra = presup;
+        gastadoObra = gastado;
+      } else {
+        gremios.push({nombre, presup, gastado, estado: row[3]||''});
+      }
+    }
+
+    // Prestamo: 3 filas -> total, devuelto, saldo
+    let prestTotal=0, prestDevuelto=0, prestSaldo=0;
+    for(const row of prestamoRows){
+      if(!row[0]) continue;
+      const label = String(row[0]).toLowerCase();
+      if(label.includes('prestado')||label.includes('total')) prestTotal = parseFloat(row[1])||0;
+      else if(label.includes('devuelto')) prestDevuelto = parseFloat(row[1])||0;
+      else if(label.includes('saldo')) prestSaldo = parseFloat(row[1])||0;
+    }
+
+    render(costoCompra, presupuestoObra, gastadoObra, gremios, prestTotal, prestDevuelto, prestSaldo);
+  } catch(err){
+    document.getElementById('main-content').innerHTML = `
+      <div class="error">⚠ Error: ${err.message}<br><br>Verificá que la planilla sea pública (Compartir → Cualquier persona con el enlace → Lector).</div>
+      <button class="refresh-btn" onclick="cargarDatos()">↻ Reintentar</button>`;
+  }
+}
+
+function render(costoCompra, presupuestoObra, gastadoObra, gremios, prestTotal, prestDevuelto, prestSaldo){
+  document.getElementById('headerSub').textContent = 'Compra + Reforma';
+
+  let html = '';
+  html += '<p class="section-title">Resumen general</p><div class="metrics">';
+  html += `<div class="metric"><div class="lbl">Costo compra depto</div><div class="val blue">${usd(costoCompra)}</div><div class="sub-val">depto + comisión + escribanía</div></div>`;
+  html += `<div class="metric"><div class="lbl">Presupuesto obra</div><div class="val">${ars(presupuestoObra)}</div><div class="sub-val">mano de obra estimada</div></div>`;
+  html += `<div class="metric"><div class="lbl">Gastado obra</div><div class="val red">${ars(gastadoObra)}</div><div class="sub-val">${gastadoObra>presupuestoObra?'⚠ excedido':'en curso'}</div></div>`;
+  const pct = presupuestoObra>0 ? Math.round(gastadoObra/presupuestoObra*100) : 0;
+  html += `<div class="metric"><div class="lbl">% obra ejecutado</div><div class="val orange">${pct}%</div><div class="sub-val">sobre presupuesto</div></div>`;
+  html += '</div>';
+
+  html += '<p class="section-title">Por gremio</p><div class="chart-wrap">';
+  for(const g of gremios){
+    const pct2 = g.presup>0 ? Math.min(g.gastado/g.presup*100,100) : 0;
+    const realPct = g.presup>0 ? Math.round(g.gastado/g.presup*100) : 0;
+    const cls = realPct>100?'bar-over':realPct>80?'bar-warn':'bar-ok';
+    const estado = realPct>100?'⚠':realPct>80?'🔶':'✓';
+    html += `<div class="pres-item">
+      <div class="pres-header"><span class="pres-cat">${estado} ${g.nombre} <span style="color:#8e9ab0;font-weight:400">(${g.estado})</span></span><span class="pres-nums">${ars(g.gastado)} / ${ars(g.presup)}</span></div>
+      <div class="bar-bg"><div class="bar-fill ${cls}" style="width:${Math.round(pct2)}%"></div></div>
+      <div class="pres-pct">${realPct}%</div>
+    </div>`;
+  }
+  if(gremios.length===0) html += '<p style="color:#8e9ab0;font-size:13px">Todavía no hay gremios cargados.</p>';
+  html += '</div>';
+
+  html += '<p class="section-title">Préstamo</p>';
+  html += `<div class="prestamo-item"><span class="lbl">Total prestado</span><span class="val">${usd(prestTotal)}</span></div>`;
+  html += `<div class="prestamo-item"><span class="lbl">Devuelto</span><span class="val" style="color:#34d399">${usd(prestDevuelto)}</span></div>`;
+  html += `<div class="prestamo-item"><span class="lbl">Saldo pendiente</span><span class="val" style="color:#f87171">${usd(prestSaldo)}</span></div>`;
+  const pctPrest = prestTotal>0 ? Math.round(prestDevuelto/prestTotal*100) : 0;
+  html += `<div class="chart-wrap"><div class="pres-pct" style="text-align:center;margin-bottom:6px">${pctPrest}% devuelto</div><div class="bar-bg"><div class="bar-fill bar-ok" style="width:${Math.min(pctPrest,100)}%"></div></div></div>`;
+
+  html += '<button class="refresh-btn" onclick="cargarDatos()">↻ Actualizar datos</button>';
+  document.getElementById('main-content').innerHTML = html;
+}
+
+cargarDatos();
+</script>
+</body>
+</html>
