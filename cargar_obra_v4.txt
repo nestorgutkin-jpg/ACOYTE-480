@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="🏗️ Obra">
+<link rel="icon" type="image/png" href="icon-obra-cargar.png">
+<link rel="apple-touch-icon" href="icon-obra-cargar.png">
+<title>🏗️ Cargar Obra</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f2f7; min-height: 100vh; }
+.header { background: #7C2D12; color: white; padding: 52px 20px 18px; text-align: center; }
+.header h1 { font-size: 22px; font-weight: 600; }
+.header p { font-size: 13px; opacity: .7; margin-top: 4px; }
+.tabs { display: flex; gap: 8px; padding: 16px 16px 0; max-width: 480px; margin: 0 auto; }
+.tab { flex: 1; padding: 12px; border-radius: 12px; border: 1.5px solid #e5e5ea; background: white; text-align: center; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; color: #1c1c1e; }
+.tab.selected { background: #7C2D12; border-color: #7C2D12; color: white; }
+.form { padding: 20px 16px; max-width: 480px; margin: 0 auto; }
+.group { background: white; border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.group label { display: block; font-size: 12px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: .04em; padding: 12px 16px 4px; }
+.group input { display: block; width: 100%; border: none; outline: none; font-family: inherit; padding: 6px 16px 14px; background: transparent; color: #1c1c1e; appearance: none; -webkit-appearance: none; }
+.monto-input { font-size: 36px; font-weight: 300; color: #7C2D12; }
+.text-input { font-size: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px 14px; }
+.chip { padding: 8px 16px; border-radius: 20px; border: 1.5px solid #e5e5ea; font-size: 15px; font-family: inherit; color: #1c1c1e; background: white; cursor: pointer; transition: all .15s; }
+.chip.selected { background: #7C2D12; border-color: #7C2D12; color: white; font-weight: 500; }
+.btn-send { display: block; width: 100%; padding: 17px; background: #7C2D12; color: white; border: none; border-radius: 14px; font-size: 18px; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 8px; transition: opacity .15s; }
+.btn-send:active { opacity: .8; }
+.btn-send:disabled { opacity: .4; }
+.success { display: none; text-align: center; padding: 60px 20px; }
+.success .icon { font-size: 72px; margin-bottom: 20px; }
+.success h2 { font-size: 24px; font-weight: 600; color: #1c1c1e; margin-bottom: 8px; }
+.success p { font-size: 15px; color: #8e8e93; margin-bottom: 32px; }
+.btn-nuevo { padding: 14px 32px; background: #7C2D12; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.error-msg { display: none; background: #ffecec; color: #c0392b; padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; text-align: center; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏗️ Acoyte 480</h1>
+  <p>Registrar movimiento</p>
+</div>
+
+<div class="tabs">
+  <button class="tab selected" id="tabObra" onclick="cambiarTab('obra')">Gasto de obra</button>
+  <button class="tab" id="tabPrestamo" onclick="cambiarTab('prestamo')">Pago a amigo</button>
+</div>
+
+<div class="form" id="formView">
+  <div class="error-msg" id="errorMsg">⚠ Completá los campos requeridos</div>
+
+  <div id="obraFields">
+    <div class="group">
+      <label>Monto $ (pesos)</label>
+      <input type="number" id="montoObra" class="monto-input" placeholder="0" inputmode="numeric">
+    </div>
+
+    <div class="group">
+      <label>Gremio</label>
+      <div class="chips">
+        <button class="chip" onclick="sel(this,'gremio')">Pintura</button>
+        <button class="chip" onclick="sel(this,'gremio')">Plastificado de pisos</button>
+        <button class="chip" onclick="sel(this,'gremio')">Electricidad</button>
+        <button class="chip" onclick="sel(this,'gremio')">Plomería</button>
+        <button class="chip" onclick="sel(this,'gremio')">Gas</button>
+        <button class="chip" onclick="sel(this,'gremio')">Carpintería</button>
+        <button class="chip" onclick="sel(this,'gremio')">Equipamiento</button>
+        <button class="chip" onclick="sel(this,'gremio')">Otros</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Tipo</label>
+      <div class="chips">
+        <button class="chip" onclick="sel(this,'tipoGasto')">Mano de obra</button>
+        <button class="chip" onclick="sel(this,'tipoGasto')">Materiales</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Método de pago</label>
+      <div class="chips">
+        <button class="chip" onclick="sel(this,'metodo')">Efectivo</button>
+        <button class="chip" onclick="sel(this,'metodo')">Débito</button>
+        <button class="chip" onclick="sel(this,'metodo')">Crédito</button>
+        <button class="chip" onclick="sel(this,'metodo')">Transferencia</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Detalle</label>
+      <input type="text" id="detalleObra" class="text-input" placeholder="Ej: Pinturerías Rex, materiales...">
+    </div>
+  </div>
+
+  <div id="prestamoFields" style="display:none">
+    <div class="group">
+      <label>Monto U$D (dólares)</label>
+      <input type="number" id="montoPrestamo" class="monto-input" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="group">
+      <label>Detalle (opcional)</label>
+      <input type="text" id="detallePrestamo" class="text-input" placeholder="Ej: Pago mensual agosto...">
+    </div>
+  </div>
+
+  <button class="btn-send" id="btnEnviar" onclick="enviar()">Guardar</button>
+</div>
+
+<div class="success" id="successView">
+  <div class="icon">✅</div>
+  <h2 id="sucTitulo"></h2>
+  <p id="sucDetalle"></p>
+  <button class="btn-nuevo" onclick="nuevo()">+ Cargar otro</button>
+</div>
+
+<iframe name="hiddenFrame" style="display:none" title="envio"></iframe>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylE71d3fgtEMUyf7ixK5GbyLlkGstNND4ZVjgpCJJlGajHXdLOhSaGm1Z3oTQKPP5T/exec";
+
+let modo = 'obra'; // 'obra' | 'prestamo'
+let gremioSel = "", tipoSel = "", metSel = "";
+
+function cambiarTab(m){
+  modo = m;
+  document.getElementById('tabObra').classList.toggle('selected', m==='obra');
+  document.getElementById('tabPrestamo').classList.toggle('selected', m==='prestamo');
+  document.getElementById('obraFields').style.display = m==='obra' ? 'block' : 'none';
+  document.getElementById('prestamoFields').style.display = m==='prestamo' ? 'block' : 'none';
+}
+
+function sel(el, tipo) {
+  const parent = el.parentElement;
+  parent.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (tipo === 'gremio') gremioSel = el.textContent;
+  else if (tipo === 'tipoGasto') tipoSel = el.textContent;
+  else if (tipo === 'metodo') metSel = el.textContent;
+}
+
+async function enviar() {
+  const err = document.getElementById('errorMsg');
+  const btn = document.getElementById('btnEnviar');
+  const fecha = new Date().toISOString().slice(0,10);
+  let params;
+
+  if (modo === 'obra') {
+    const monto = document.getElementById('montoObra').value;
+    const detalle = document.getElementById('detalleObra').value;
+    if (!monto || !gremioSel || !tipoSel || !metSel) {
+      err.style.display = 'block';
+      setTimeout(() => err.style.display = 'none', 3000);
+      return;
+    }
+    params = { monto, gremio: gremioSel, tipoGasto: tipoSel, detalle, metodo: metSel, fecha };
+  } else {
+    const monto = document.getElementById('montoPrestamo').value;
+    const detalle = document.getElementById('detallePrestamo').value;
+    if (!monto) {
+      err.style.display = 'block';
+      setTimeout(() => err.style.display = 'none', 3000);
+      return;
+    }
+    params = { tipo: 'prestamo', monto, detalle, fecha };
+  }
+
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+  try {
+    await new Promise((resolve) => {
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = SCRIPT_URL;
+      form.target = 'hiddenFrame';
+      for (const key in params) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => { document.body.removeChild(form); resolve(); }, 2500);
+    });
+    if (modo === 'obra') {
+      const monto = document.getElementById('montoObra').value;
+      document.getElementById('sucTitulo').textContent = '$' + Number(monto).toLocaleString('es-AR') + ' guardado ✓';
+      document.getElementById('sucDetalle').textContent = gremioSel + ' · ' + tipoSel;
+    } else {
+      const monto = document.getElementById('montoPrestamo').value;
+      document.getElementById('sucTitulo').textContent = 'U$D ' + Number(monto).toLocaleString('es-AR') + ' guardado ✓';
+      document.getElementById('sucDetalle').textContent = 'Pago a tu amigo registrado';
+    }
+    document.getElementById('formView').style.display = 'none';
+    document.getElementById('successView').style.display = 'block';
+  } catch(e) {
+    btn.textContent = 'Guardar';
+    btn.disabled = false;
+    err.textContent = '⚠ Error de conexión. Revisá el WiFi.';
+    err.style.display = 'block';
+  }
+}
+
+function nuevo() {
+  document.getElementById('montoObra').value = '';
+  document.getElementById('detalleObra').value = '';
+  document.getElementById('montoPrestamo').value = '';
+  document.getElementById('detallePrestamo').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  gremioSel = ''; tipoSel = ''; metSel = '';
+  document.getElementById('formView').style.display = 'block';
+  document.getElementById('successView').style.display = 'none';
+  document.getElementById('btnEnviar').textContent = 'Guardar';
+  document.getElementById('btnEnviar').disabled = false;
+}
+</script>
+</body>
+</html>
