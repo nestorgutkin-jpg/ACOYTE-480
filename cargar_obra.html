@@ -168,8 +168,9 @@ async function enviar() {
     url = SCRIPT_URL + '?tipo=prestamo&monto=' + encodeURIComponent(monto) + '&detalle=' + encodeURIComponent(detalle) + '&fecha=' + fecha;
   }
 
-  btn.textContent = 'Guardando...';
+     btn.textContent = 'Guardando...';
   btn.disabled = true;
+  alert(url);
   try {
     await new Promise((resolve) => {
       const img = new Image();
