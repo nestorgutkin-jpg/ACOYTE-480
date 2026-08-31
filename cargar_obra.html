@@ -119,6 +119,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   <button class="btn-nuevo" onclick="nuevo()">+ Cargar otro</button>
 </div>
 
+<iframe name="hiddenFrame" style="display:none" title="envio"></iframe>
+
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylE71d3fgtEMUyf7ixK5GbyLlkGstNND4ZVjgpCJJlGajHXdLOhSaGm1Z3oTQKPP5T/exec";
 
@@ -146,7 +148,7 @@ async function enviar() {
   const err = document.getElementById('errorMsg');
   const btn = document.getElementById('btnEnviar');
   const fecha = new Date().toISOString().slice(0,10);
-  let url;
+  let params;
 
   if (modo === 'obra') {
     const monto = document.getElementById('montoObra').value;
@@ -156,7 +158,7 @@ async function enviar() {
       setTimeout(() => err.style.display = 'none', 3000);
       return;
     }
-    url = SCRIPT_URL + '?monto=' + encodeURIComponent(monto) + '&gremio=' + encodeURIComponent(gremioSel) + '&tipoGasto=' + encodeURIComponent(tipoSel) + '&detalle=' + encodeURIComponent(detalle) + '&metodo=' + encodeURIComponent(metSel) + '&fecha=' + fecha;
+    params = { monto, gremio: gremioSel, tipoGasto: tipoSel, detalle, metodo: metSel, fecha };
   } else {
     const monto = document.getElementById('montoPrestamo').value;
     const detalle = document.getElementById('detallePrestamo').value;
@@ -165,19 +167,27 @@ async function enviar() {
       setTimeout(() => err.style.display = 'none', 3000);
       return;
     }
-    url = SCRIPT_URL + '?tipo=prestamo&monto=' + encodeURIComponent(monto) + '&detalle=' + encodeURIComponent(detalle) + '&fecha=' + fecha;
+    params = { tipo: 'prestamo', monto, detalle, fecha };
   }
 
-     btn.textContent = 'Guardando...';
+  btn.textContent = 'Guardando...';
   btn.disabled = true;
-  alert(url);
   try {
     await new Promise((resolve) => {
-      const img = new Image();
-      img.onload = resolve;
-      img.onerror = resolve;
-      img.src = url;
-      setTimeout(resolve, 4000);
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = SCRIPT_URL;
+      form.target = 'hiddenFrame';
+      for (const key in params) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => { document.body.removeChild(form); resolve(); }, 2500);
     });
     if (modo === 'obra') {
       const monto = document.getElementById('montoObra').value;
