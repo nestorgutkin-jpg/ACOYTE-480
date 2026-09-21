@@ -70,6 +70,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
         <button class="chip" onclick="sel(this,'gremio')">Gas</button>
         <button class="chip" onclick="sel(this,'gremio')">Carpintería</button>
         <button class="chip" onclick="sel(this,'gremio')">Equipamiento</button>
+        <button class="chip" onclick="sel(this,'gremio')">Baño</button>
         <button class="chip" onclick="sel(this,'gremio')">Otros</button>
       </div>
     </div>
@@ -119,107 +120,4 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   <button class="btn-nuevo" onclick="nuevo()">+ Cargar otro</button>
 </div>
 
-<iframe name="hiddenFrame" style="display:none" title="envio"></iframe>
-
-<script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylE71d3fgtEMUyf7ixK5GbyLlkGstNND4ZVjgpCJJlGajHXdLOhSaGm1Z3oTQKPP5T/exec";
-
-let modo = 'obra'; // 'obra' | 'prestamo'
-let gremioSel = "", tipoSel = "", metSel = "";
-
-function cambiarTab(m){
-  modo = m;
-  document.getElementById('tabObra').classList.toggle('selected', m==='obra');
-  document.getElementById('tabPrestamo').classList.toggle('selected', m==='prestamo');
-  document.getElementById('obraFields').style.display = m==='obra' ? 'block' : 'none';
-  document.getElementById('prestamoFields').style.display = m==='prestamo' ? 'block' : 'none';
-}
-
-function sel(el, tipo) {
-  const parent = el.parentElement;
-  parent.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  if (tipo === 'gremio') gremioSel = el.textContent;
-  else if (tipo === 'tipoGasto') tipoSel = el.textContent;
-  else if (tipo === 'metodo') metSel = el.textContent;
-}
-
-async function enviar() {
-  const err = document.getElementById('errorMsg');
-  const btn = document.getElementById('btnEnviar');
-  const fecha = new Date().toISOString().slice(0,10);
-  let params;
-
-  if (modo === 'obra') {
-    const monto = document.getElementById('montoObra').value;
-    const detalle = document.getElementById('detalleObra').value;
-    if (!monto || !gremioSel || !tipoSel || !metSel) {
-      err.style.display = 'block';
-      setTimeout(() => err.style.display = 'none', 3000);
-      return;
-    }
-    params = { monto, gremio: gremioSel, tipoGasto: tipoSel, detalle, metodo: metSel, fecha };
-  } else {
-    const monto = document.getElementById('montoPrestamo').value;
-    const detalle = document.getElementById('detallePrestamo').value;
-    if (!monto) {
-      err.style.display = 'block';
-      setTimeout(() => err.style.display = 'none', 3000);
-      return;
-    }
-    params = { tipo: 'prestamo', monto, detalle, fecha };
-  }
-
-  btn.textContent = 'Guardando...';
-  btn.disabled = true;
-  try {
-    await new Promise((resolve) => {
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = SCRIPT_URL;
-      form.target = 'hiddenFrame';
-      for (const key in params) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = params[key];
-        form.appendChild(input);
-      }
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(() => { document.body.removeChild(form); resolve(); }, 2500);
-    });
-    if (modo === 'obra') {
-      const monto = document.getElementById('montoObra').value;
-      document.getElementById('sucTitulo').textContent = '$' + Number(monto).toLocaleString('es-AR') + ' guardado ✓';
-      document.getElementById('sucDetalle').textContent = gremioSel + ' · ' + tipoSel;
-    } else {
-      const monto = document.getElementById('montoPrestamo').value;
-      document.getElementById('sucTitulo').textContent = 'U$D ' + Number(monto).toLocaleString('es-AR') + ' guardado ✓';
-      document.getElementById('sucDetalle').textContent = 'Pago a tu amigo registrado';
-    }
-    document.getElementById('formView').style.display = 'none';
-    document.getElementById('successView').style.display = 'block';
-  } catch(e) {
-    btn.textContent = 'Guardar';
-    btn.disabled = false;
-    err.textContent = '⚠ Error de conexión. Revisá el WiFi.';
-    err.style.display = 'block';
-  }
-}
-
-function nuevo() {
-  document.getElementById('montoObra').value = '';
-  document.getElementById('detalleObra').value = '';
-  document.getElementById('montoPrestamo').value = '';
-  document.getElementById('detallePrestamo').value = '';
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-  gremioSel = ''; tipoSel = ''; metSel = '';
-  document.getElementById('formView').style.display = 'block';
-  document.getElementById('successView').style.display = 'none';
-  document.getElementById('btnEnviar').textContent = 'Guardar';
-  document.getElementById('btnEnviar').disabled = false;
-}
-</script>
-</body>
-</html>
+<iframe
